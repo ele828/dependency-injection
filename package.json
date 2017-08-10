@@ -1,0 +1,30 @@
+{
+  "name": "dependency-injection",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha --compilers ts:ts-node/register test/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ele828/dependency-injection.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ele828/dependency-injection/issues"
+  },
+  "homepage": "https://github.com/ele828/dependency-injection#readme",
+  "devDependencies": {
+    "@types/chai": "^4.0.2",
+    "@types/mocha": "^2.2.41",
+    "chai": "^4.1.1",
+    "mocha": "^3.5.0",
+    "ts-node": "^3.3.0",
+    "typescript": "^2.4.2"
+  }
+}
