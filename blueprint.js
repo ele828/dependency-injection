@@ -6,14 +6,15 @@ import Client from './Client'
   providers: [
     Client,
     Log4JS,
+    RecentCalls,
     // Token and Class is different
     { provide: Logger, useClass: WinstonLogger },
     // Replace provider by a new implementation
-    // Or change to use a existing one
+    // Or change to use an existing one
     { provide: Logger, useExisting: Log4JS },
     // Inject values (usually used for configurations)
-    { provide: Options, useValue: { appKey: '' }, merge: true },
-    { provide: AnalyticsOptions, useValue: { appKey: '' }, merge: true },
+    { provide: Options, useValue: { appKey: '' }, spread: true },
+    { provide: AnalyticsOptions, useValue: { appKey: '' }, spread: true },
     { provide: Brand },
     // Factory method can be used to instantiate special class
     // like external class or configuration class, etc.
@@ -22,8 +23,10 @@ import Client from './Client'
       useFactory: (chatService) => {
           return Promise.resolve(chatService.getValue());
       },
-      inject: [ ChatService ] }
-  ]
+      deps: [ ChatService ] }
+  ],
+  // Set entrypoint of modules
+  bootstrap: [Phone]
 })
 class Phone extends RcModule {
   constructor(...submodules) {
@@ -34,8 +37,6 @@ class Phone extends RcModule {
         this._reducer[moduleName] = module.reducer
       if (module._metadata.registerProxyReducer)
         this._proxyReducer[moduleName] = module.reducer
-      if (module._registerEpic)
-        this._epics[moduleName] = module.epic
       module._getState = () => this.state[moduleName]
     }
   }
@@ -45,7 +46,7 @@ class Phone extends RcModule {
   providers: [ 'Logger', 'Client', 'MessageStore', 'Options' ],
   metadata: { registerProxyReducer: true }
 })
-class RecentMessages extends RcModule {
+class RecentCalls extends RcModule {
   constructor({
     logger,
     client,
@@ -55,15 +56,6 @@ class RecentMessages extends RcModule {
     this.logger = logger;
     this.client = client;
     this.messageStore = messageStore;
-  }
-
-  initialize() {
-    this.actions$.ofType(this.messageStore.syncSuccess.initSuccess)
-      .subscribe(action => {
-        this.ready = true;
-      });
-
-    
   }
 }
 
