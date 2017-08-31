@@ -5,6 +5,7 @@ import ProviderRegistry from './registry/provider_registry';
 import { ModuleFactoryMetadata, ModuleMetadata } from './types/metadata';
 import * as Errors from './errors';
 import { isFunction, isObject, isArray } from './utils/is_type';
+import { isEmpty, isAnonymousFunction } from './utils/utils';
 
 export class Record<T> extends Map<Token, T> {}
 
@@ -22,9 +23,15 @@ export default class Injector {
   }
   
   static registerModule<T extends Klass<T>>(constructor: T, metadata: ModuleMetadata = {}) {
-    const moduleName = constructor.name;
     if (!constructor || !isFunction(constructor)) {
       throw Errors.InvalidModuleTypeError;
+    }
+    const moduleName = constructor.name;
+    if (isEmpty(moduleName)) {
+      throw Errors.InvalidModuleTypeError;
+    }
+    if (isAnonymousFunction(moduleName)) {
+      throw Errors.AnonymousFunctionError;
     }
     if (metadata && !isObject(metadata)) {
       throw Errors.InvalidModuleParameterError;
@@ -33,10 +40,16 @@ export default class Injector {
   }
 
   static registerModuleProvider<T extends Klass<T>>(constructor: T, metadata: ModuleFactoryMetadata) {
-    const moduleFactoryName = constructor.name;
     if (!constructor || !isFunction(constructor)) {
       throw Errors.InvalidModuleFactoryTypeError;
     } 
+    const moduleFactoryName = constructor.name;
+    if (isEmpty(moduleFactoryName)) {
+      throw Errors.InvalidModuleFactoryTypeError;
+    }
+    if (isAnonymousFunction(moduleFactoryName)) {
+      throw Errors.AnonymousFunctionError;
+    }
     if (metadata && !isObject(metadata)) {
       throw Errors.InvalidModuleFactoryParameterError;
     }
