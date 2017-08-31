@@ -9,6 +9,12 @@ import { isEmpty, isAnonymousFunction } from './utils/utils';
 
 export class Record<T> extends Map<Token, T> {}
 
+function recursivelyResolveModules() {}
+
+function getParentClass<T>(klass: Klass<T>) {
+  return (klass as any).__proto__;
+}
+
 export default class Injector {
   private static Record = new Record();
   private static moduleRegistry = new ModuleRegistry();
@@ -20,9 +26,23 @@ export default class Injector {
     console.log('bootstraping', entryClassName);
     const entryClassMetadata = this.providerRegistry.get(entryClassName);
     console.log('entryClassMetadata', entryClassMetadata);
+
+    // Combine providers of all ancestors modules
+    let providerMetadata = [];
+    for (
+      let currentClass = klass;
+      !isEmpty(currentClass.name);
+      currentClass = getParentClass(currentClass)
+    ) {
+      console.log('currentClass:', currentClass);
+      const currentProviderMetadata = this.providerRegistry.get(currentClass.name);
+      providerMetadata = providerMetadata.concat(currentProviderMetadata)
+    }
+    console.log('providerMetadata:', providerMetadata);
+
   }
   
-  static registerModule<T extends Klass<T>>(constructor: T, metadata: ModuleMetadata = {}) {
+  static registerModule<T extends Klass<T>>(constructor: T, metadata: ModuleMetadata) {
     if (!constructor || !isFunction(constructor)) {
       throw Errors.InvalidModuleTypeError;
     }
@@ -35,6 +55,9 @@ export default class Injector {
     }
     if (metadata && !isObject(metadata)) {
       throw Errors.InvalidModuleParameterError;
+    }
+    if (!metadata) {
+      metadata = null;
     }
     this.moduleRegistry.set(moduleName, metadata);
   }
@@ -53,11 +76,14 @@ export default class Injector {
     if (metadata && !isObject(metadata)) {
       throw Errors.InvalidModuleFactoryParameterError;
     }
-    if (!isArray(metadata.providers)) {
+    if (metadata && metadata.providers && !isArray(metadata.providers)) {
       throw Errors.InvalidProviderTypeError;
     }
     if (!metadata.providers) {
       throw Errors.NoProvidersFoundError;
+    }
+    if (!metadata) {
+      metadata = null;
     }
     this.providerRegistry.set(moduleFactoryName, metadata.providers);
   }

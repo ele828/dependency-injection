@@ -10,14 +10,21 @@ describe('Module Decorator', () => {
       deps: ['Logger', 'GlobalConfig']
     })
     class TestModule {}
+
     @ModuleFactory({
       providers: [
-        Logger,
+        Logger
+      ]
+    })
+    class RootModule {}
+
+    @ModuleFactory({
+      providers: [
         TestModule,
         { provide: 'GlobalConfig', useValue: { appKey: '123' }, spread: true}
       ]
     })
-    class EntryModuleFactory {}
+    class EntryModuleFactory extends RootModule {}
     const instance = Injector.bootstrap(EntryModuleFactory);
   });
 });
