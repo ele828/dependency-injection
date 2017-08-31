@@ -1,5 +1,9 @@
-import { expect } from 'chai'
+import { expect } from 'chai';
+import ModuleFactory from '../src/decorators/module_factory';
 
-describe('', () => {
-
-})
+describe('ModuleFactory Decorator', () => {
+  it ('should work', () => {
+    @ModuleFactory()
+    class RootModule {}
+  })
+});
