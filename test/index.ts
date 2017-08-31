@@ -1,9 +1,36 @@
 import { expect } from 'chai';
 import ModuleFactory from '../src/decorators/module_factory';
+import Module from '../src/decorators/module';
+import Injector from '../src/injector';
+
+describe('Module Decorator', () => {
+  it ('should work', () => {
+    class Logger {}
+    @Module({
+      deps: ['Logger', 'GlobalConfig']
+    })
+    class TestModule {}
+    @ModuleFactory({
+      providers: [
+        Logger,
+        TestModule,
+        { provide: 'GlobalConfig', useValue: { appKey: '123' }, spread: true}
+      ]
+    })
+    class EntryModuleFactory {}
+    const instance = Injector.bootstrap(EntryModuleFactory);
+  });
+});
 
 describe('ModuleFactory Decorator', () => {
   it ('should work', () => {
-    @ModuleFactory()
-    class RootModule {}
-  })
+    @ModuleFactory({
+      providers: []
+    })
+    class RootModuleFactory {}
+    @ModuleFactory({
+      providers: []
+    })
+    class Factory extends RootModuleFactory {}
+  });
 });

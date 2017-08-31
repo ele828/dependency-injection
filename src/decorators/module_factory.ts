@@ -1,12 +1,14 @@
 import Klass from "../types/Klass";
-import { Metadata } from "../types/metadata";
+import { ModuleFactoryMetadata } from "../types/metadata";
+import Injector from "../injector";
 
 /**
  * @ModuleFactory() decorator
  * Used for defining a root module of the system and also declare and import dependencies injected into the system.
  */
-export default function ModuleFactory (metadata?: Metadata) {
-  return function classDecorator<T extends Klass<T>>(constructor: T) {
-
+export default function ModuleFactory (metadata?: ModuleFactoryMetadata): Function {
+  return function<T extends Klass<T>> (constructor: T) {
+    console.log('@ModuleFactory', constructor.name, metadata);
+    Injector.registerModuleProvider(constructor, metadata);
   }
 }
