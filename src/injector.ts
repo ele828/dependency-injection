@@ -6,6 +6,7 @@ import { ModuleFactoryMetadata, ModuleMetadata } from './types/metadata';
 import * as Errors from './errors';
 import { isFunction, isObject, isArray } from './utils/is_type';
 import { isEmpty, isAnonymousFunction } from './utils/utils';
+import { Provider } from './types/provider';
 
 export class Record<T> extends Map<Token, T> {}
 
@@ -14,6 +15,8 @@ function recursivelyResolveModules() {}
 function getParentClass<T>(klass: Klass<T>) {
   return (klass as any).__proto__;
 }
+
+const USE_VALUE = 'useValue';
 
 export default class Injector {
   private static Record = new Record();
@@ -40,6 +43,25 @@ export default class Injector {
     }
     console.log('providerMetadata:', providerMetadata);
 
+    // Iterate through all provider metadata
+    for (const metadata of providerMetadata) {
+      // KlassProvider
+      if (USE_VALUE in metadata) {
+        
+      } else if (metadata.useClass) {
+
+      } else if (metadata.useExisting) {
+
+      } else if (metadata.useFactory) {
+
+      } else if (isFunction(metadata)) {
+
+      } else {
+        throw new Error();
+      }
+    }
+
+    // Resolve dependencies and create instances
   }
   
   static registerModule<T extends Klass<T>>(constructor: T, metadata: ModuleMetadata) {
@@ -65,7 +87,7 @@ export default class Injector {
   static registerModuleProvider<T extends Klass<T>>(constructor: T, metadata: ModuleFactoryMetadata) {
     if (!constructor || !isFunction(constructor)) {
       throw Errors.InvalidModuleFactoryTypeError;
-    } 
+    }
     const moduleFactoryName = constructor.name;
     if (isEmpty(moduleFactoryName)) {
       throw Errors.InvalidModuleFactoryTypeError;
