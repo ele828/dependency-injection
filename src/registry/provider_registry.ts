@@ -5,7 +5,7 @@ import { Provider } from "../types/provider";
  * ProviderRegistry is a centralized structure for storing provider metadata.
  * It's a map data structure mapping Token to Provider.
  */
-export default class ProviderRegistry extends Map<Token, Provider[]> {
+export default class ProviderRegistry<T> extends Map<Token, T> {
   get(token: Token) {
     if (!this.has(token)) {
       throw new Error(`Can not find token {${token}} in ProviderRegistry`);
@@ -13,10 +13,10 @@ export default class ProviderRegistry extends Map<Token, Provider[]> {
     return super.get(token);
   }
 
-  set(token: Token, providers: Provider[]) {
+  set(token: Token, provider: T) {
     if (this.has(token)) {
       throw new Error(`Can only register {${token}} once`);
     }
-    return super.set(token, providers);
+    return super.set(token, provider);
   }
 }
