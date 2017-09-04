@@ -4,19 +4,13 @@ import ModuleRegistry from './registry/module_registry';
 import ProviderRegistry from './registry/provider_registry';
 import { ModuleFactoryMetadata, ModuleMetadata } from './types/metadata';
 import * as Errors from './errors';
-import { isFunction, isObject, isArray } from './utils/is_type';
-import { isEmpty, isAnonymousFunction } from './utils/utils';
-import { Provider } from './types/provider';
+import { isFunction, isObject, isArray, isValueProvider, isStaticClassProvider, isExistingProvider, isFactoryProvider, isConstructorProvider, isClassProvider } from './utils/is_type';
+import { isEmpty, isAnonymousFunction, getParentClass } from './utils/utils';
+import { Provider, ClassProvider, StaticClassProvider, ExistingProvider, FactoryProvider, ConstructorProvider, ValueProvider } from './types/provider';
 
 export class Record<T> extends Map<Token, T> {}
 
 function recursivelyResolveModules() {}
-
-function getParentClass<T>(klass: Klass<T>) {
-  return (klass as any).__proto__;
-}
-
-const USE_VALUE = 'useValue';
 
 export default class Injector {
   private static Record = new Record();
@@ -31,7 +25,7 @@ export default class Injector {
     console.log('entryClassMetadata', entryClassMetadata);
 
     // Combine providers of all ancestors modules
-    let providerMetadata = [];
+    let providerMetadata: Provider[] = [];
     for (
       let currentClass = klass;
       !isEmpty(currentClass.name);
@@ -45,19 +39,14 @@ export default class Injector {
 
     // Iterate through all provider metadata
     for (const metadata of providerMetadata) {
-      // KlassProvider
-      if (USE_VALUE in metadata) {
-        
-      } else if (metadata.useClass) {
-
-      } else if (metadata.useExisting) {
-
-      } else if (metadata.useFactory) {
-
-      } else if (isFunction(metadata)) {
-
+      if (isValueProvider(metadata)) {
+      } else if (isStaticClassProvider(metadata)) {
+      } else if (isExistingProvider(metadata)) {
+      } else if (isFactoryProvider(metadata)) {
+      } else if (isConstructorProvider(metadata)) {
+      } else if (isClassProvider(metadata)) {
       } else {
-        throw new Error();
+        throw new Error('Invalid provider format');
       }
     }
 

@@ -4,7 +4,7 @@ import Token from './token';
 /**
  * Provides class type directly
  */
-export interface KlassProvider extends Klass<any> {}
+export interface ClassProvider extends Klass<any> {}
 
 /**
  * Provides values.
@@ -61,4 +61,4 @@ export interface FactoryProvider {
   deps?: any[];
 }
 
-export type Provider = KlassProvider | ValueProvider | StaticClassProvider | ConstructorProvider | ExistingProvider | FactoryProvider;
+export type Provider = ClassProvider | ValueProvider | StaticClassProvider | ConstructorProvider | ExistingProvider | FactoryProvider;
