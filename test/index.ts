@@ -5,27 +5,38 @@ import Injector from '../src/injector';
 
 describe('Module Decorator', () => {
   it ('should work', () => {
-    @Module()
-    class Logger {}
+    @Module({
+      deps: ['TestModule']
+    })
+    class Logger {
+      constructor({ testModule }) {
+        console.log('-> TestModule:', testModule);
+      }
+    }
 
     @Module({
-      deps: ['Logger', 'GlobalConfig']
+      deps: ['Toy', 'GlobalConfig']
     })
     class TestModule {
-      constructor({ Logger, appKey }) {
-        console.log('-> Logger:', Logger);
+      constructor({ logger, appKey }) {
+        console.log('-> Logger:', logger);
         console.log('-> appKey:', appKey);
       }
     }
 
+    @Module({
+      deps: ['Logger']
+    })
+    class Toy {}
+
     @ModuleFactory({
       providers: [
-        Logger
+        { provide: Logger }
       ]
     })
     class RootModule {
-      constructor({ Logger }) {
-        console.log('-> Logger:', Logger);
+      constructor({ logger }) {
+        console.log('-> Logger:', logger);
       }
       static bootstrap() {
         return Injector.bootstrap(this);
@@ -34,8 +45,12 @@ describe('Module Decorator', () => {
 
     @ModuleFactory({
       providers: [
+        Toy,
         TestModule,
-        { provide: 'GlobalConfig', useValue: { appKey: '123' }, spread: true }
+        { provide: 'GlobalConfig', useValue: { appKey: '123' }, spread: true },
+        { provide: 'Logger', useFactory: ({appKey}) => {
+          return { logger: true, appKey };
+        }, deps: [ 'GlobalConfig' ]},
       ]
     })
     class EntryModule extends RootModule {
