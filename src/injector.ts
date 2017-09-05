@@ -65,6 +65,7 @@ export default class Injector {
     for (const dep of deps) {
       if (!this.container.has(dep)) {
         const dependentModuleProvider = this.universalProviders.get(dep);
+        if (!dependentModuleProvider) throw new Error(`Module {${dep}} is not registered as a Provider`)
         this.resolveModuleProvider(dependentModuleProvider, pending);
         if (!this.container.has(dep)) throw new Error(`Instance of {${dep}} is not found`);
       }
@@ -80,14 +81,14 @@ export default class Injector {
   }
 
   // Entrypoint of the framework
-  static bootstrap<T>(klass: Klass<T>) {
-    const entryClassName = klass.name;
-    const entryClassMetadata = this.providerRegistry.get(entryClassName);
+  static bootstrap<T>(rootClass: Klass<T>) {
+    const rootClassName = rootClass.name;
+    const rootClassMetadata = this.providerRegistry.get(rootClassName);
 
     // Combine providers of all ancestors modules
     let providerMetadata: Provider[] = [];
     for (
-      let currentClass = klass;
+      let currentClass = rootClass;
       !isEmpty(currentClass.name);
       currentClass = getParentClass(currentClass)
     ) {
@@ -155,6 +156,13 @@ export default class Injector {
         this.resolveModuleProvider(provider);
       }
     }
+
+    // Instantiate root module
+    const parameters = Array.from(this.container.entries()).reduce((result, entries) => {
+      result[<any>entries[0]] = entries[1];
+      return result;
+    }, {});
+    return new rootClass(parameters);
   }
   
   static registerModule<T extends Klass<T>>(constructor: T, metadata: ModuleMetadata) {
