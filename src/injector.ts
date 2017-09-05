@@ -9,6 +9,7 @@ import { isFunction, isObject, isArray, isValueProvider, isStaticClassProvider, 
 import { isEmpty, isAnonymousFunction, getParentClass } from './utils/utils';
 import { Provider, ClassProvider, StaticClassProvider, ExistingProvider, FactoryProvider, ConstructorProvider, ValueProvider } from './types/provider';
 
+// TODO: Refactor to use class instead of ENUM to determine Provider Type
 export enum ProviderType {
   Class,
   Value,
@@ -27,9 +28,56 @@ export class UniversalProvider {
 }
 
 export default class Injector {
-  private static container = new Container<Klass<any>>();
+  private static container = new Container();
   private static moduleRegistry = new ModuleRegistry();
-  private static providerRegistry = new ProviderRegistry<Provider>();
+  private static providerRegistry = new ProviderRegistry<Provider[]>();
+  private static universalProviders = new Map<Token, UniversalProvider>();
+
+  static resolveModuleProvider (provider: UniversalProvider, pending: Set<String> = new Set()) {
+    const container = this.container;
+    if (this.container.has(provider.token)) return;
+    if (provider.type === ProviderType.Value) {
+      container.set(provider.token, {
+        value: provider.value,
+        spread: provider.spread
+      });
+    } else if (provider.type === ProviderType.Factory) {
+      const dependencies = this.resolveDependencies(provider.deps, pending);
+      const factoryProvider = provider.func.apply(null, dependencies);
+      container.set(provider.token, factoryProvider);
+    } else if (provider.type === ProviderType.Class) {
+      const moduleMetadata = this.moduleRegistry.get(provider.token);
+      if (!moduleMetadata) throw new Error(`{${provider.token}} is not an valid Module`);
+      const deps = moduleMetadata.deps;
+      const klass = <Klass<any>>provider.func;
+      if (!deps || deps.length === 0) {
+        this.container.set(provider.token, (new klass));
+        return;
+      }
+      const dependencies = this.resolveDependencies(deps, pending);
+      const instance = new klass(dependencies);
+      this.container.set(provider.token, instance);
+    }
+  }
+
+  static resolveDependencies(deps, pending) {
+    let dependencies = {};
+    for (const dep of deps) {
+      if (!this.container.has(dep)) {
+        const dependentModuleProvider = this.universalProviders.get(dep);
+        this.resolveModuleProvider(dependentModuleProvider, pending);
+        if (!this.container.has(dep)) throw new Error(`Instance of {${dep}} is not found`);
+      }
+      const dependentModule = this.container.get(dep);
+      // Value dependency and use spread, in this case, value object needs to be spreaded
+      if ((<any>dependentModule).value !== undefined && (<any>dependentModule).spread) {
+        dependencies = { ...dependencies, ...(<any>dependentModule).value }
+      } else {
+        dependencies[<any>dep] = dependentModule;
+      }
+    }
+    return dependencies;
+  }
 
   // Entrypoint of the framework
   static bootstrap<T>(klass: Klass<T>) {
@@ -49,7 +97,7 @@ export default class Injector {
 
     // Iterate through all provider metadata
     // Discard providers in parent class overwritten by children
-    const universalProviders = new Map<Token, UniversalProvider>();
+    const universalProviders = this.universalProviders;
     for (const provider of providerMetadata) {
       if (isValueProvider(provider)) {
         if (!universalProviders.has(provider.provide)) {
@@ -102,12 +150,9 @@ export default class Injector {
     const container = this.container;
     const providerQueue = Array.from(universalProviders.values());
     while (providerQueue.length > 0) {
-      const provider = providerQueue.pop();
-      if (provider.type === ProviderType.Value) {
-        container.set(provider.token, provider.value);
-      } else if (provider.type === ProviderType.Class) {
-        const moduleMetadata = this.moduleRegistry.get(provider.token);
-        // TODO
+      const provider = providerQueue.shift();
+      if (!container.has(provider.token)) {
+        this.resolveModuleProvider(provider);
       }
     }
   }
@@ -155,6 +200,9 @@ export default class Injector {
     if (!metadata) {
       metadata = null;
     }
+    // TODO: validate module providers
+    // useValue should be object or number or string, etc.
+    // spread can only be used if useValue is an object.
     this.providerRegistry.set(moduleFactoryName, metadata.providers);
   }
  
