@@ -47,7 +47,6 @@ export default class Injector {
       container.set(provider.token, factoryProvider);
     } else if (provider.type === ProviderType.Class) {
       const moduleMetadata = this.moduleRegistry.get(provider.token);
-      if (!moduleMetadata) throw new Error(`{${provider.token}} is not an valid Module`);
       const deps = moduleMetadata.deps;
       const klass = <Klass<any>>provider.func;
       if (!deps || deps.length === 0) {
@@ -67,7 +66,6 @@ export default class Injector {
         const dependentModuleProvider = this.universalProviders.get(dep);
         if (!dependentModuleProvider) throw new Error(`Module {${dep}} is not registered as a Provider`)
         this.resolveModuleProvider(dependentModuleProvider, pending);
-        if (!this.container.has(dep)) throw new Error(`Instance of {${dep}} is not found`);
       }
       const dependentModule = this.container.get(dep);
       // Value dependency and use spread, in this case, value object needs to be spreaded
