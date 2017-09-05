@@ -44,10 +44,10 @@ export default class Injector {
     } else if (provider.type === ProviderType.Factory) {
       const dependencies = this.resolveDependencies(provider.deps, pending);
       const factoryProvider = provider.func.apply(null, dependencies);
-      container.set(provider.token, factoryProvider);
+      container.set(provider.token,factoryProvider);
     } else if (provider.type === ProviderType.Class) {
       const moduleMetadata = this.moduleRegistry.get(provider.token);
-      const deps = moduleMetadata.deps;
+      const deps = moduleMetadata !== null ? moduleMetadata.deps : [];
       const klass = <Klass<any>>provider.func;
       if (!deps || deps.length === 0) {
         this.container.set(provider.token, (new klass));

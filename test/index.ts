@@ -5,27 +5,45 @@ import Injector from '../src/injector';
 
 describe('Module Decorator', () => {
   it ('should work', () => {
+    @Module()
     class Logger {}
+
     @Module({
       deps: ['Logger', 'GlobalConfig']
     })
-    class TestModule {}
+    class TestModule {
+      constructor({ Logger, appKey }) {
+        console.log('-> Logger:', Logger);
+        console.log('-> appKey:', appKey);
+      }
+    }
 
     @ModuleFactory({
       providers: [
         Logger
       ]
     })
-    class RootModule {}
+    class RootModule {
+      constructor({ Logger }) {
+        console.log('-> Logger:', Logger);
+      }
+      static bootstrap() {
+        return Injector.bootstrap(this);
+      }
+    }
 
     @ModuleFactory({
       providers: [
         TestModule,
-        { provide: 'GlobalConfig', useValue: { appKey: '123' }, spread: true}
+        { provide: 'GlobalConfig', useValue: { appKey: '123' }, spread: true }
       ]
     })
-    class EntryModuleFactory extends RootModule {}
-    const instance = Injector.bootstrap(EntryModuleFactory);
+    class EntryModule extends RootModule {
+      constructor(params) {
+        super(params);
+      }
+    }
+    const instance = EntryModule.bootstrap();
   });
 });
 
