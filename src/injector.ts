@@ -9,22 +9,40 @@ import { isFunction, isObject, isArray, isValueProvider, isStaticClassProvider, 
 import { isEmpty, isAnonymousFunction, getParentClass, camelize } from './utils/utils';
 import { Provider, ClassProvider, StaticClassProvider, ExistingProvider, FactoryProvider, ConstructorProvider, ValueProvider } from './types/provider';
 
-// TODO: Refactor to use class instead of ENUM to determine Provider Type
-export enum ProviderType {
-  Class,
-  Value,
-  Factory
-}
-
 export class UniversalProvider {
   constructor(
-    public token: Token,
-    public type: ProviderType,
-    public func: Klass<any> | Function = null,
-    public deps: any[] = [],
-    public value: any = null,
-    public spread: boolean = false
+    public token: Token
   ) {}
+}
+
+export class UniversalClassProvider extends UniversalProvider {
+  public klass: Klass<any>;
+  public deps: any[] = [];
+  constructor(token: Token, klass: Klass<any>, deps: any[]) {
+    super(token);
+    this.klass = klass;
+    this.deps = deps;
+  }
+}
+
+export class UniversalFactoryProvider extends UniversalProvider {
+  public func: Function;
+  public deps: any[];
+  constructor(token: Token, func: Function, deps: any[]) {
+    super(token);
+    this.func = func;
+    this.deps = deps || [];
+  }
+} 
+
+export class UniversalValueProvider extends UniversalProvider {
+  public value: any;
+  public spread: boolean;
+  constructor(token: Token, value: any, spread: boolean) {
+    super(token);
+    this.value = value;
+    this.spread = spread;
+  }
 }
 
 export default class Injector {
@@ -36,27 +54,27 @@ export default class Injector {
   private static applyGlobalMetadata = null;
 
   static config({ applyMetadata }) {
-    if (applyMetadata) this.applyGlobalMetadata = applyMetada;
+    if (applyMetadata) this.applyGlobalMetadata = applyMetadata;
   }
 
   static resolveModuleProvider(provider: UniversalProvider, pending: Set<Token> = new Set()) {
     const container = this.container;
     if (container.has(provider.token)) return;
-    if (provider.type === ProviderType.Value) {
+    if (provider instanceof UniversalValueProvider) {
       container.set(provider.token, {
         value: provider.value,
         spread: provider.spread
       });
-    } else if (provider.type === ProviderType.Factory) {
+    } else if (provider instanceof UniversalFactoryProvider) {
       pending.add(provider.token);
       const dependencies = this.resolveDependencies(provider.deps, pending);
       const factoryProvider = provider.func.call(null, dependencies);
       container.set(provider.token, factoryProvider);
       pending.delete(provider.token);
-    } else if (provider.type === ProviderType.Class) {
-      const moduleMetadata = this.moduleRegistry.get(provider.func.name);
+    } else if (provider instanceof UniversalClassProvider) {
+      const moduleMetadata = this.moduleRegistry.get(provider.klass.name);
       const deps = moduleMetadata !== null ? moduleMetadata.deps : [];
-      const klass = <Klass<any>>provider.func;
+      const klass = <Klass<any>>provider.klass;
       if (!deps || deps.length === 0) {
         container.set(provider.token, (new klass));
         return;
@@ -118,34 +136,35 @@ export default class Injector {
       if (isValueProvider(provider)) {
         universalProviders.set(
           provider.provide,
-          new UniversalProvider(provider.provide, ProviderType.Value, null, null, provider.useValue, provider.spread)
+          new UniversalValueProvider(provider.provide, provider.useValue, provider.spread)
         );
       } else if (isStaticClassProvider(provider)) {
         universalProviders.set(
           provider.provide,
-          new UniversalProvider(provider.provide, ProviderType.Class, provider.useClass, provider.deps)
+          new UniversalClassProvider(provider.provide, provider.useClass, provider.deps)
         );
       } else if (isExistingProvider(provider)) {
         universalProviders.set(
           provider.provide,
-          new UniversalProvider(provider.provide, ProviderType.Class, provider.useExisting)
+          new UniversalClassProvider(provider.provide, provider.useExisting, null)
         );
       } else if (isFactoryProvider(provider)) {
         universalProviders.set(
           provider.provide,
-          new UniversalProvider(provider.provide, ProviderType.Factory, provider.useFactory, provider.deps)
+          new UniversalFactoryProvider(provider.provide, provider.useFactory, provider.deps)
         );
       } else if (isConstructorProvider(provider)) {
         universalProviders.set(
           provider.provide.name,
-          new UniversalProvider(provider.provide.name, ProviderType.Class, provider.provide, provider.deps)
+          new UniversalClassProvider(provider.provide.name, provider.provide, provider.deps)
         );
       } else if (isClassProvider(provider)) {
         universalProviders.set(
           provider.name,
-          new UniversalProvider(provider.name, ProviderType.Class, provider)
+          new UniversalClassProvider(provider.name, provider, null)
         );
-      } else {
+      } 
+      else {
         throw new Error('Invalid provider format');
       }
     }
@@ -173,16 +192,16 @@ export default class Injector {
     const reducers = {};
     
     for (const [name, module] of this.container.entries()) {
-      module._getState = rootClassInstance.state[camelize(name)];
+      // module._getState = rootClassInstance.state[camelize(name)];
     }
 
-    rootClassInstance._reducer = combineReducers({
-      ...reducers,
-      lastAction: (state = null, action) => {
-        console.log(action);
-        return action;
-      }
-    });
+    // rootClassInstance._reducer = combineReducers({
+    //   ...reducers,
+    //   lastAction: (state = null, action) => {
+    //     console.log(action);
+    //     return action;
+    //   }
+    // });
 
     return rootClassInstance;
   }
