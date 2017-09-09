@@ -61,10 +61,10 @@ export default class Injector {
     const container = this.container;
     if (container.has(provider.token)) return;
     if (provider instanceof UniversalValueProvider) {
-      container.set(provider.token, {
-        value: provider.value,
-        spread: provider.spread
-      });
+      const value = provider.spread
+        ? { value: provider.value, spread: provider.spread }
+        : provider.value;
+      container.set(provider.token, value);
     } else if (provider instanceof UniversalFactoryProvider) {
       pending.add(provider.token);
       const dependencies = this.resolveDependencies(provider.deps, pending);
