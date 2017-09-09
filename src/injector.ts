@@ -33,6 +33,12 @@ export default class Injector {
   private static providerRegistry = new ProviderRegistry<Provider[]>();
   private static universalProviders = new Map<Token, UniversalProvider>();
 
+  private static applyGlobalMetadata = null;
+
+  static config({ applyMetadata }) {
+    if (applyMetadata) this.applyGlobalMetadata = applyMetada;
+  }
+
   static resolveModuleProvider(provider: UniversalProvider, pending: Set<Token> = new Set()) {
     const container = this.container;
     if (container.has(provider.token)) return;
@@ -159,7 +165,26 @@ export default class Injector {
       result[camelize(entries[0])] = entries[1];
       return result;
     }, {});
-    return new rootClass(parameters);
+
+    const rootClassInstance = new rootClass(parameters);
+
+    // Additional module configurations
+    // eg. register reducer, inject getState
+    const reducers = {};
+    
+    for (const [name, module] of this.container.entries()) {
+      module._getState = rootClassInstance.state[camelize(name)];
+    }
+
+    rootClassInstance._reducer = combineReducers({
+      ...reducers,
+      lastAction: (state = null, action) => {
+        console.log(action);
+        return action;
+      }
+    });
+
+    return rootClassInstance;
   }
   
   static registerModule<T extends Klass<T>>(constructor: T, metadata: ModuleMetadata) {
